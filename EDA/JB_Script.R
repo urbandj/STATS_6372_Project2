@@ -60,7 +60,7 @@ setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/EDA")
 
 medData2 <- read.csv(file="data_cut.csv", header=TRUE)
 
-reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec))
+reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec, cdx_mcid))
 
 
 # recode cognitive variable
@@ -75,6 +75,18 @@ reduced3 <- reduced %>% mutate(cdx_cog2=recode(cdx_cog,
 reduced4 <- reduced3 %>%
   mutate(cdx_cog2 = if_else(is.na(cdx_cog2), 0, cdx_cog2))
 
+
+
+# see all the column types
+sapply(reduced4, class)
+
+# replace all NA values with 0
+reduced4[is.na(reduced4)] = 0
+
+# MLR to identify significant variables
+testDatalm <- lm(cdx_cog2~., data = reduced4)
+summary(testDatalm)
+
 reduced5 <- select (reduced4,-c(cdx_cog2))
 
 dat.train.x <- reduced5
@@ -82,6 +94,6 @@ dat.train.y <- reduced4$cdx_cog2
 
 
 
-summary(reduced4)
+
 
 
