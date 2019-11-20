@@ -51,14 +51,37 @@ reduced5 <- ifelse(medData)
 # cognitive data exploration
 
 library(dplyr)
+library(RColorBrewer)
+library(glmnet)
+
 
 # Load data
 setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/EDA")
+
 medData2 <- read.csv(file="data_cut.csv", header=TRUE)
 
-summary(medData2)
+reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec))
 
-reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt))
 
+# recode cognitive variable
+reduced3 <- reduced %>% mutate(cdx_cog2=recode(cdx_cog, 
+                         `0`=0,
+                         `1`=1,
+                         `2`=1,
+                         `3`=1,
+                         `4`=1,
+                         `5`=0))
+
+reduced4 <- reduced3 %>%
+  mutate(cdx_cog2 = if_else(is.na(cdx_cog2), 0, cdx_cog2))
+
+reduced5 <- select (reduced4,-c(cdx_cog2))
+
+dat.train.x <- reduced5
+dat.train.y <- reduced4$cdx_cog2
+
+
+
+summary(reduced4)
 
 
