@@ -60,10 +60,22 @@ setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/EDA")
 
 medData2 <- read.csv(file="data_cut.csv", header=TRUE)
 
-reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec, cdx_mcid))
+reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec, cdx_mcid, Med_ID))
 
 
 # recode cognitive variable
+######
+#levels of lgr_eda2$cdx_cog
+######
+#0=normal*****
+#1=Subjective Memory Complaint(SMC)****
+#2=MCI****
+#3=Dementia****
+#4=Other Cognition
+#5=Abnormal Cognition****
+#7=Dont Know
+#8=Refuse to answer
+#9=Not Appicable
 reduced3 <- reduced %>% mutate(cdx_cog2=recode(cdx_cog, 
                          `0`=0,
                          `1`=1,
@@ -72,16 +84,28 @@ reduced3 <- reduced %>% mutate(cdx_cog2=recode(cdx_cog,
                          `4`=1,
                          `5`=0))
 
-reduced4 <- reduced3 %>%
+
+reduced3a <- reduced3 %>% mutate(ID_Hispanic2=recode(ID_Hispanic, 
+                                               `1`=0,
+                                               `2`=1,
+                                               `3`=1,
+                                               `4`=1,
+                                               `5`=1))
+
+
+
+reduced4 <- reduced3a %>%
   mutate(cdx_cog2 = if_else(is.na(cdx_cog2), 0, cdx_cog2))
 
+reduced4a <- reduced4 %>%
+  mutate(ID_Hispanic2 = if_else(is.na(ID_Hispanic2), 0, ID_Hispanic2))
 
 
 # see all the column types
 sapply(reduced4, class)
 
 # replace all NA values with 0
-reduced4[is.na(reduced4)] = 0
+reduced4a[is.na(reduced4a)] = 0
 
 # MLR to identify significant variables
 testDatalm <- lm(cdx_cog2~., data = reduced4)
@@ -93,10 +117,53 @@ dat.train.x <- reduced5
 dat.train.y <- reduced4$cdx_cog2
 
 
+testDatalm2 <- lm(cdx_cog2~., data = reduced4)
+summary(testDatalm2)
+
 testDatalm2 <- lm(cdx_cog2~cdx_depression + LM2_AB_sscore + Age, data = reduced4)
 summary(testDatalm2)
 
+train <- reduced4a[1:350,]
+test <- reduced4a[351:741,]
+
+model  <- glm(cdx_cog2 ~ .,family=binomial(link='logit'),data=train)
+
+# LM2_AB_sscore | LM1_AB_sscore and TrailsA_sscore | TrailsB_sscore  - trails (higher the score the worse)are cognitive test scores
+# Full fit
+model  <- glm(cdx_cog2 ~ cdx_depression + LM1_AB_sscore + Age + TrailsA_sscore + IMH_RhuematoidArthritis + IMH_Osteoporosis
+              + IMH_Anxiety + IMH_HeartDisease + OM_BP1_SYS + OM_BP1_DIA + ID_Retire + ID_MaritalStatus
+              + mmse_t_w,family=binomial(link='logit'),data=train)
+summary(model)
+
+# Reduced
+model  <- glm(cdx_cog2 ~ LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender
+              ,family=binomial(link='logit'),data=train)
+summary(model)
 
 
+anova(model, test="Chisq")
+
+mylda <- lda(cdx_cog2 ~., data = train)
+mylda <- lda(cdx_cog2 ~ cdx_depression + LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender, data = train)
+
+np <- 1
+nd.x <- seq(from = min(full$X1), to = max(full$X1), length.out = np)
+nd.y <- seq(from = min(full$X2), to = max(full$X2), length.out = np)
+nd <- expand.grid(X1 = nd.x, X2 = nd.y)
+
+prd <- as.numeric(predict(mylda, newdata = test)$class)
+
+plot(full[, 1:2], col = full$Response, main="Shift in X2")
+points(mylda$means, pch = "+", cex = 2, col = c("black", "red"))
+contour(x = nd.x, y = nd.y, z = matrix(prd, nrow = np, ncol = np), 
+        levels = c(1, 2), add = TRUE, drawlabels = FALSE)
+
+
+
+fitted.results <- predict(model,newdata=subset(test,select=c(2,3,4,5,6,7,8)),type='response')
+fitted.results <- ifelse(fitted.results > 0.5,1,0)
+
+misClasificError <- mean(fitted.results != test$Survived)
+print(paste('Accuracy',1-misClasificError))
 
 
