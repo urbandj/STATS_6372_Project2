@@ -93,6 +93,9 @@ dat.train.x <- reduced5
 dat.train.y <- reduced4$cdx_cog2
 
 
+testDatalm2 <- lm(cdx_cog2~cdx_depression + LM2_AB_sscore + Age, data = reduced4)
+summary(testDatalm2)
+
 
 
 
