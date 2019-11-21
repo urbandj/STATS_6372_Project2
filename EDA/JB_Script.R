@@ -93,6 +93,7 @@ reduced3a <- reduced3 %>% mutate(ID_Hispanic2=recode(ID_Hispanic,
                                                `5`=1))
 
 
+# Set NAs to 0
 
 reduced4 <- reduced3a %>%
   mutate(cdx_cog2 = if_else(is.na(cdx_cog2), 0, cdx_cog2))
@@ -111,38 +112,32 @@ reduced4a[is.na(reduced4a)] = 0
 testDatalm <- lm(cdx_cog2~., data = reduced4)
 summary(testDatalm)
 
-reduced5 <- select (reduced4,-c(cdx_cog2))
-
-dat.train.x <- reduced5
-dat.train.y <- reduced4$cdx_cog2
-
-
-testDatalm2 <- lm(cdx_cog2~., data = reduced4)
-summary(testDatalm2)
-
 testDatalm2 <- lm(cdx_cog2~cdx_depression + LM2_AB_sscore + Age, data = reduced4)
 summary(testDatalm2)
 
+# test / train data set split
 train <- reduced4a[1:350,]
 test <- reduced4a[351:741,]
 
+# logistic regression models - full fit
 model  <- glm(cdx_cog2 ~ .,family=binomial(link='logit'),data=train)
 
 # LM2_AB_sscore | LM1_AB_sscore and TrailsA_sscore | TrailsB_sscore  - trails (higher the score the worse)are cognitive test scores
-# Full fit
+# Partial fit
 model  <- glm(cdx_cog2 ~ cdx_depression + LM1_AB_sscore + Age + TrailsA_sscore + IMH_RhuematoidArthritis + IMH_Osteoporosis
               + IMH_Anxiety + IMH_HeartDisease + OM_BP1_SYS + OM_BP1_DIA + ID_Retire + ID_MaritalStatus
               + mmse_t_w,family=binomial(link='logit'),data=train)
 summary(model)
 
-# Reduced
+# Reduced fit
 model  <- glm(cdx_cog2 ~ LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender
               ,family=binomial(link='logit'),data=train)
 summary(model)
 
-
+# ANOVA on regression results
 anova(model, test="Chisq")
 
+# LDA
 mylda <- lda(cdx_cog2 ~., data = train)
 mylda <- lda(cdx_cog2 ~ cdx_depression + LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender, data = train)
 
@@ -157,13 +152,4 @@ plot(full[, 1:2], col = full$Response, main="Shift in X2")
 points(mylda$means, pch = "+", cex = 2, col = c("black", "red"))
 contour(x = nd.x, y = nd.y, z = matrix(prd, nrow = np, ncol = np), 
         levels = c(1, 2), add = TRUE, drawlabels = FALSE)
-
-
-
-fitted.results <- predict(model,newdata=subset(test,select=c(2,3,4,5,6,7,8)),type='response')
-fitted.results <- ifelse(fitted.results > 0.5,1,0)
-
-misClasificError <- mean(fitted.results != test$Survived)
-print(paste('Accuracy',1-misClasificError))
-
 
