@@ -19,7 +19,12 @@ library(Hmisc)
 library(ggplot2)
 library("lindia")
 library(GGally)
-
+library(ROSE)
+library(dplyr)
+library(RColorBrewer)
+library(glmnet)
+library("tree")
+setwd("C:/Users/daj0079/Desktop/SMU_2nd/Stats_Project_2")
 #######
 ##read in CSV 
 #######
@@ -43,7 +48,33 @@ lgr_eda<-read.csv("C:/Users/daj0079/Desktop/SMU_2nd/Stats_Project_2/data_cut.csv
 ##Removed IMCOME should run models with and without this variable
 
 minus_cols<-c(1,7:15,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,66,68,70,72,74,76,78,80,104,105,143,157:161)
+apoe_cols<-c(1,7:15,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,66,68,70,72,74,76,78,80,104,105,143,157,158)
 lgr_eda[,-minus_cols]->lgr_eda2
+lgr_eda[,-apoe_cols]->lgr_eda_apoe
+na.omit(lgr_eda2)->nona_lgr_eda2
+na.omit(lgr_eda_apoe)->nona_lgr_eda_apoe
+
+##bucket cdx_cog var for sampling 
+cdx_cog_bucket<-ifelse(nona_lgr_eda2$cdx_cog=='0', 0, ifelse(nona_lgr_eda2$cdx_cog=='1', 1,
+                                                                  ifelse(nona_lgr_eda2$cdx_cog=='2', 1,
+                                                                         ifelse(nona_lgr_eda2$cdx_cog=='3', 1,
+                                                                                ifelse(nona_lgr_eda2$cdx_cog=='4', 1,
+                                                                                       ifelse(nona_lgr_eda2$cdx_cog=='5', 0,0))))))
+##added cdx_cog2 bucket
+cbind(nona_lgr_eda2, cdx_cog_bucket)->nona_lgr_eda2
+                       
+###Over and Under and Both sampling to normalize th counts of disease ad normal states
+sum(is.na(nona_lgr_eda2))
+set.seed(1975)
+data_over_sam <- ovun.sample(cdx_cog_bucket ~., data = nona_lgr_eda2, method = "over",N = 656)$data
+data_under_sam <- ovun.sample(cdx_cog_bucket ~., data = nona_lgr_eda2, method = "under",N =146)$data
+data_both_sam <- ovun.sample(cdx_cog_bucket ~., data = nona_lgr_eda2, method = "both",N =500)$data
+
+table(nona_lgr_eda2$cdx_cog_bucket)
+table(data_over_sam$cdx_cog_bucket)
+table(data_under_sam$cdx_cog_bucket)
+table(data_both_sam$cdx_cog_bucket)
+
 
 #######
 ##SKIM 
@@ -111,6 +142,103 @@ corrplot(corr_object2, method = "number")#use this in write-up
 ##height, weight BMI
 ##imunological variables 
 ## hemogoblin measurments
+
+
+##PCA on Continous Variables
+var_split<-c(2:8,12,13,15,26:46,107:118)
+nona_lgr_eda2[,-var_split]->cont_vars
+##na.omit(cont_vars)->cont_vars
+
+pc_cont_result<-prcomp(cont_vars,scale.=TRUE)
+pc_cont_scores<-pc_cont_result$x
+pc_cont_scores<-data.frame(pc_cont_scores)
+
+nona_lgr_eda2
+
+
+#Scree plot of continous
+eigenvals<-(pc_cont_result$sdev)^2
+plot(1:76,eigenvals/sum(eigenvals),type="l",main="Scree Plot PC's",ylab="Prop. Var. Explained",ylim=c(0,1))
+cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
+lines(1:76,cumulative.prop,lty=2)
+
+##PCA on over/under sampled data
+var_split<-c(2:8,12,13,15,26:46,107:119)
+data_both_sam[,-var_split]->cont_both_vars
+sum(is.na(cont_both_vars))
+
+pc_both_result<-prcomp(cont_both_vars,scale.=TRUE)
+pc_both_scores<-pc_both_result$x
+pc_both_scores<-data.frame(pc_cont_scores)
+
+
+
+#Scree plot of over/under sampled data
+eigenvals3<-(pc_both_result$sdev)^2
+plot(1:76,eigenvals/sum(eigenvals),type="l",main="Scree Plot PC's",ylab="Prop. Var. Explained",ylim=c(0,1))
+cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
+lines(1:76,cumulative.prop,lty=2)
+
+
+##Tree spliting on continour vars
+cont_tree1<-tree(cdx_cog~.,cont_vars) #default is for atleast 5 observations in the child nodes for split to occur
+summary(cont_tree1)
+plot(cont_tree1)
+text(cont_tree1,pretty=0)
+
+cont_tree2<-tree(cdx_cog_bucket~.,cont_both_vars) #default is for atleast 5 observations in the child nodes for split to occur
+summary(cont_tree2)
+plot(cont_tree2)
+text(cont_tree2,pretty=0)
+
+##PCA on Binary Variables
+bi_var_split<-c(2:8,12,13,15,26:46,107:119)
+non_bi_vars<-c(6,24)
+lgr_eda2[,bi_var_split]->binary_vars
+binary_vars[,-non_bi_vars]->binary_vars
+na.omit(binary_vars)->binary_vars
+
+apoe_var_split<-c(2:8,12,13,15,26:46,107:122)
+non_bi_vars<-c(6,24)
+lgr_eda_apoe[,apoe_var_split]->apoe_vars
+apoe_vars[,-non_bi_vars]->apoe_vars
+na.omit(binary_vars)->apoe_vars
+
+pc_bi_result<-prcomp(binary_vars,scale.=TRUE)
+pc_bi_scores<-pc_bi_result$x
+pc_bi_scores<-data.frame(pc_bi_scores)
+pc_bi_scores
+pc.scores$mpg<-newAuto$mpg
+
+
+bi_tree<-tree(cdx_cog~.,binary_vars) #default is for atleast 5 observations in the child nodes for split to occur
+summary(bi_tree)
+plot(bi_tree)
+text(bi_tree,pretty=0)
+
+apoe_tree<-tree(cdx_cog~.,apoe_vars) #default is for atleast 5 observations in the child nodes for split to occur
+summary(apoe_tree)
+plot(apoe_tree)
+text(apoe_tree,pretty=0)
+skim(apoe_vars)
+str(apoe_vars)
+
+
+non_bi_vars<-c(7,24)
+
+lgr_eda2[,-non_bi_vars]->t_vars
+total_tree<-tree(cdx_cog~.,t_vars) #default is for atleast 5 observations in the child nodes for split to occur
+str(t_vars)
+summary(total_tree)
+plot(total_tree)
+text(total_tree,pretty=0)
+#Scree plot of Binary
+eigenvals2<-(pc_bi_result$sdev)^2
+plot(1:42,eigenvals2/sum(eigenvals2),type="l",main="Scree Plot PC's",ylab="Prop. Var. Explained",ylim=c(0,1))
+cumulative.prop2<-cumsum(eigenvals2/sum(eigenvals2))
+lines(1:42,cumulative.prop2,lty=2)
+
+
 
 ######
 ######
