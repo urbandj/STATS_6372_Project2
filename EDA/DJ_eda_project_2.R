@@ -143,17 +143,215 @@ corrplot(corr_object2, method = "number")#use this in write-up
 ##imunological variables 
 ## hemogoblin measurments
 
-
+library(ggfortify)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+install.packages("ggbiplot")
 ##PCA on Continous Variables
-var_split<-c(2:8,12,13,15,26:46,107:118)
+var_split<-c(2:8,12,13,15,26:46,107:119)
 nona_lgr_eda2[,-var_split]->cont_vars
 ##na.omit(cont_vars)->cont_vars
 
+
 pc_cont_result<-prcomp(cont_vars,scale.=TRUE)
 pc_cont_scores<-pc_cont_result$x
+pc_cont_result$x
+#cdx_cog_bucket to df as group id for plots
+pca_list<-cbind(pc_cont_result$x, cdx_cog_bucket)
 pc_cont_scores<-data.frame(pc_cont_scores)
+options("max.print" = 10000)
+pca<-pc_cont_result$x
+as.data.frame(pca)->pca
+pc_cont_result$rotation
 
-nona_lgr_eda2
+
+  ##best separation seems to be the first few plots and 36
+##need to do a write up and summary for PCA section, would be good to included
+##a plot or two a most.  We could also try runing a model with the PCs and check 
+##performance
+  
+
+
+ 
+ggplot(pca, aes(pca$PC1,pca$PC36, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+
+ggplot(pca, aes(pca$PC1,pca$PC2, colour=factor(cdx_cog_bucket)))+geom_point () 
+ggplot(pca, aes(pca$PC1,pca$PC3, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC4, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC5, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC6, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC7, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC8, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC9, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC10, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC11, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC12, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC13, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC14, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC15, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC16, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC17, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC18, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC19, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC20, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC21, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC22, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC23, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC24, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC25, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC26, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC27, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC28, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC29, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC30, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC31, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC32, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC33, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC34, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC35, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+##seems to have separation
+ggplot(pca, aes(pca$PC1,pca$PC36, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC37, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC38, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC39, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC1,pca$PC40, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+
+
+
+ggplot(pca, aes(pca$PC2,pca$PC3, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC4, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC5, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC6, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC7, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC8, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC9, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC20, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC11, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC12, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC13, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC14, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC15, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC16, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC17, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC18, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC19, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC20, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC21, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC22, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC23, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC24, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC25, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC26, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC27, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC2,pca$PC28, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+
+ggplot(pca, aes(pca$PC3,pca$PC4, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC5, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC6, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC7, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC8, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC9, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC10, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC11, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC12, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC13, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC14, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC15, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC16, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC17, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC18, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC19, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC20, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC21, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC22, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC23, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC24, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC25, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC26, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC27, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC3,pca$PC28, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+ggplot(pca, aes(pca$PC4,pca$PC5, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC6, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC7, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC8, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC9, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC10, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC11, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC12, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC13, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC14, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC15, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC16, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC17, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC18, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC19, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC20, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC21, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC22, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC23, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC24, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC25, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC26, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC27, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC4,pca$PC28, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+
+ggplot(pca, aes(pca$PC5,pca$PC6, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC7, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC8, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC9, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC10, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC11, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC12, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC13, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC14, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC15, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC16, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC17, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC18, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC19, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC20, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC21, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC22, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC23, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC24, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC25, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC26, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC27, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC5,pca$PC28, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+ggplot(pca, aes(pca$PC6,pca$PC7, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC8, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC9, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC10, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC11, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC12, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC13, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC14, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC15, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC16, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC17, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC18, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC19, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC20, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC21, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC22, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC23, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC24, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC25, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC26, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC27, colour=factor(cdx_cog_bucket)))+geom_point ()
+ggplot(pca, aes(pca$PC6,pca$PC28, colour=factor(cdx_cog_bucket)))+geom_point ()
+
+
+
+
 
 
 #Scree plot of continous
@@ -170,6 +368,9 @@ sum(is.na(cont_both_vars))
 pc_both_result<-prcomp(cont_both_vars,scale.=TRUE)
 pc_both_scores<-pc_both_result$x
 pc_both_scores<-data.frame(pc_cont_scores)
+
+
+
 
 
 
@@ -194,7 +395,7 @@ text(cont_tree2,pretty=0)
 ##PCA on Binary Variables
 bi_var_split<-c(2:8,12,13,15,26:46,107:119)
 non_bi_vars<-c(6,24)
-lgr_eda2[,bi_var_split]->binary_vars
+nona_lgr_eda2[,bi_var_split]->binary_vars
 binary_vars[,-non_bi_vars]->binary_vars
 na.omit(binary_vars)->binary_vars
 
