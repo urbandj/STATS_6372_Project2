@@ -47,8 +47,8 @@ lgr_eda<-read.csv("C:/Users/daj0079/Desktop/SMU_2nd/Stats_Project_2/data_cut.csv
 ##Removed cdx_mci, may want to add this back for an MCI model
 ##Removed IMCOME should run models with and without this variable
 
-minus_cols<-c(1,7:15,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,66,68,70,72,74,76,78,80,104,105,143,157:161)
-apoe_cols<-c(1,7:15,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,66,68,70,72,74,76,78,80,104,105,143,157,158)
+minus_cols<-c(1,7:15,17,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,65,66,68,70,72,74,76,78,80,104,105,143,157:161)
+apoe_cols<-c(1,7:15,17,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,65,66,68,70,72,74,76,78,80,104,105,143,157,158)
 lgr_eda[,-minus_cols]->lgr_eda2
 lgr_eda[,-apoe_cols]->lgr_eda_apoe
 na.omit(lgr_eda2)->nona_lgr_eda2
@@ -62,6 +62,12 @@ cdx_cog_bucket<-ifelse(nona_lgr_eda2$cdx_cog=='0', 0, ifelse(nona_lgr_eda2$cdx_c
                                                                                        ifelse(nona_lgr_eda2$cdx_cog=='5', 0,0))))))
 ##added cdx_cog2 bucket
 cbind(nona_lgr_eda2, cdx_cog_bucket)->nona_lgr_eda2
+
+
+## added co_morbid variable which is sum of all morbidites. Made both IMH and cdx class variable
+
+nona_lgr_eda2$IMH_co_morbid<-rowSums(nona_lgr_eda2[,25:44] )
+nona_lgr_eda2$cdx_co_morbid<-rowSums(nona_lgr_eda2[,105:116] )
                        
 ###Over and Under and Both sampling to normalize th counts of disease ad normal states
 sum(is.na(nona_lgr_eda2))
@@ -149,7 +155,8 @@ library(grid)
 library(gridExtra)
 install.packages("ggbiplot")
 ##PCA on Continous Variables
-var_split<-c(2:8,12,13,15,26:46,107:119)
+var_split<-c(2,4:6,14,25:44,105:116)
+
 nona_lgr_eda2[,-var_split]->cont_vars
 ##na.omit(cont_vars)->cont_vars
 
@@ -164,6 +171,12 @@ options("max.print" = 10000)
 pca<-pc_cont_result$x
 as.data.frame(pca)->pca
 pc_cont_result$rotation
+
+#Scree plot of continous
+eigenvals<-(pc_cont_result$sdev)^2
+plot(1:83,eigenvals/sum(eigenvals),type="l",main="Scree Plot PC's",ylab="Prop. Var. Explained",ylim=c(0,1))
+cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
+lines(1:83,cumulative.prop,lty=2)
 
 
   ##best separation seems to be the first few plots and 36
@@ -354,11 +367,7 @@ ggplot(pca, aes(pca$PC6,pca$PC28, colour=factor(cdx_cog_bucket)))+geom_point ()
 
 
 
-#Scree plot of continous
-eigenvals<-(pc_cont_result$sdev)^2
-plot(1:76,eigenvals/sum(eigenvals),type="l",main="Scree Plot PC's",ylab="Prop. Var. Explained",ylim=c(0,1))
-cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
-lines(1:76,cumulative.prop,lty=2)
+
 
 ##PCA on over/under sampled data
 var_split<-c(2:8,12,13,15,26:46,107:119)
@@ -380,6 +389,16 @@ plot(1:76,eigenvals/sum(eigenvals),type="l",main="Scree Plot PC's",ylab="Prop. V
 cumulative.prop<-cumsum(eigenvals/sum(eigenvals))
 lines(1:76,cumulative.prop,lty=2)
 
+##tree spliting in al variables
+total_tree<-tree(cdx_cog_bucket~.,nona_lgr_eda2)
+summary(total_tree)
+plot(total_tree)
+text(total_tree,pretty=0)
+
+str(nona_lgr_eda2)
+
+
+
 
 ##Tree spliting on continour vars
 cont_tree1<-tree(cdx_cog~.,cont_vars) #default is for atleast 5 observations in the child nodes for split to occur
@@ -387,16 +406,25 @@ summary(cont_tree1)
 plot(cont_tree1)
 text(cont_tree1,pretty=0)
 
-cont_tree2<-tree(cdx_cog_bucket~.,cont_both_vars) #default is for atleast 5 observations in the child nodes for split to occur
+cont_tree2<-tree(cdx_cog_bucket~.,cont_vars) #default is for atleast 5 observations in the child nodes for split to occur
 summary(cont_tree2)
 plot(cont_tree2)
 text(cont_tree2,pretty=0)
 
+
+set.seed(3)
+cv.adver=cv.tree(cont_tree2,FUN=prune.tree,method="deviance")
+names(cv.adver)
+cv.adver
+plot(cv.adver)
+par(mfrow=c(1,1))
+plot(cv.adver$size,cv.adver$dev,type="b")
+
 ##PCA on Binary Variables
-bi_var_split<-c(2:8,12,13,15,26:46,107:119)
-non_bi_vars<-c(6,24)
+
+bi_var_split<-c(2,4:6,14,25:44,105:116,118)
 nona_lgr_eda2[,bi_var_split]->binary_vars
-binary_vars[,-non_bi_vars]->binary_vars
+
 na.omit(binary_vars)->binary_vars
 
 apoe_var_split<-c(2:8,12,13,15,26:46,107:122)
@@ -409,13 +437,17 @@ pc_bi_result<-prcomp(binary_vars,scale.=TRUE)
 pc_bi_scores<-pc_bi_result$x
 pc_bi_scores<-data.frame(pc_bi_scores)
 pc_bi_scores
-pc.scores$mpg<-newAuto$mpg
 
 
-bi_tree<-tree(cdx_cog~.,binary_vars) #default is for atleast 5 observations in the child nodes for split to occur
+
+
+bi_tree<-tree(cdx_cog_bucket~.,binary_vars) #default is for atleast 5 observations in the child nodes for split to occur
 summary(bi_tree)
 plot(bi_tree)
 text(bi_tree,pretty=0)
+
+
+
 
 apoe_tree<-tree(cdx_cog~.,apoe_vars) #default is for atleast 5 observations in the child nodes for split to occur
 summary(apoe_tree)
@@ -425,11 +457,11 @@ skim(apoe_vars)
 str(apoe_vars)
 
 
-non_bi_vars<-c(7,24)
 
-lgr_eda2[,-non_bi_vars]->t_vars
-total_tree<-tree(cdx_cog~.,t_vars) #default is for atleast 5 observations in the child nodes for split to occur
-str(t_vars)
+t_vars<-c(117)
+nona_lgr_eda2[,-t_vars]->total_vars
+total_tree<-tree(cdx_cog_bucket~.,total_vars) #default is for atleast 5 observations in the child nodes for split to occur
+
 summary(total_tree)
 plot(total_tree)
 text(total_tree,pretty=0)
