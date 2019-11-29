@@ -53,6 +53,10 @@ reduced5 <- ifelse(medData)
 library(dplyr)
 library(RColorBrewer)
 library(glmnet)
+library(gplots)
+library(ggplot2)
+library(leaps)
+library(MASS)
 
 
 # Load data
@@ -115,41 +119,103 @@ summary(testDatalm)
 testDatalm2 <- lm(cdx_cog2~cdx_depression + LM2_AB_sscore + Age, data = reduced4)
 summary(testDatalm2)
 
+# removing these two columns because they are very highly correlated with the predictor
+reduced4a <- select (reduced4a,-c(cdx_mci, cdx_cog))
+
 # test / train data set split
 train <- reduced4a[1:350,]
 test <- reduced4a[351:741,]
 
-# logistic regression models - full fit
-model  <- glm(cdx_cog2 ~ .,family=binomial(link='logit'),data=train)
+# full fit (MLR) before converting response to factor
+train$cdx_cog2<-as.numeric(train$cdx_cog2) 
+full.model <- lm(cdx_cog2 ~., data = train)
+summary(full.model)
+
+# stepwise selection
+step(lm(cdx_cog2 ~., data = train),direction="both")
+
+# stepwise recommended model - AIC: -825.72 Adj. R2 = 0.5785
+model.stepwise <- lm(formula = cdx_cog2 ~ OM_Pulse2 + OM_BP2_SYS + OM_BMI + IMH_HighBPAge + 
+                       IMH_Dementia + IMH_HeartDisease + IMH_HeartDiseaseAge + IMH_StrokeAge + 
+                       IMH_AnxietyAge + IMH_OsteoporosisAge + IMH_Arthritis + IMH_ArthritisAge + 
+                       IMH_SeizuresDisorderAge + IMH_TBI + TrailsAtime + TrailsAerrors + 
+                       TrailsBtime + LM2_Atotal + LM2_Btotal + LM2_AB_total + LM2_AB_sscore + 
+                       mmse_t_w + bw_eGFRnonAA + bw_eGFRAA + bw_Bilirubin + bw_hematocrit + 
+                       bw_platelet + cdx_hypothyroid + cdx_anemia + APOE_4 + ID_Hispanic2 + 
+                       bw_calcium + Age + ID_Education + ID_Race_White, data = train)
+summary(model.stepwise)
+
+# convert dependent variable to factor
+train[, 'cdx_cog2'] <- as.factor(train[, 'cdx_cog2'])
+test[, 'cdx_cog2'] <- as.factor(test[, 'cdx_cog2'])
 
 # LM2_AB_sscore | LM1_AB_sscore and TrailsA_sscore | TrailsB_sscore  - trails (higher the score the worse)are cognitive test scores
-# Partial fit
-model  <- glm(cdx_cog2 ~ cdx_depression + LM1_AB_sscore + Age + TrailsA_sscore + IMH_RhuematoidArthritis + IMH_Osteoporosis
-              + IMH_Anxiety + IMH_HeartDisease + OM_BP1_SYS + OM_BP1_DIA + ID_Retire + ID_MaritalStatus
-              + mmse_t_w,family=binomial(link='logit'),data=train)
-summary(model)
+# Partial fit using stepwise recommendations - AIC 193.88
+model.partial <- glm(cdx_cog2 ~ OM_Pulse2 + OM_BP2_SYS + OM_BMI + IMH_HighBPAge + 
+  IMH_Dementia + IMH_HeartDisease + IMH_HeartDiseaseAge + IMH_StrokeAge + 
+  IMH_AnxietyAge + IMH_OsteoporosisAge + IMH_Arthritis + IMH_ArthritisAge + 
+  IMH_SeizuresDisorderAge + IMH_TBI + TrailsAtime + TrailsAerrors + 
+  TrailsBtime + LM2_Atotal + LM2_Btotal + LM2_AB_total + LM2_AB_sscore + 
+  mmse_t_w + bw_eGFRnonAA + bw_eGFRAA + bw_Bilirubin + bw_hematocrit + 
+  bw_platelet + cdx_hypothyroid + cdx_anemia + APOE_4 + ID_Hispanic2 + 
+  bw_calcium + Age + ID_Education + ID_Race_White
+  ,family=binomial(link='logit'),data=train)
+summary(model.partial)
 
-# Reduced fit
-model  <- glm(cdx_cog2 ~ LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender
+
+# manually built model using practical knowledge - AIC 255.93
+# should we run LASSO against it as well?
+model.manual  <- glm(cdx_cog2 ~ LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender
               ,family=binomial(link='logit'),data=train)
-summary(model)
+summary(model.manual)
 
-# ANOVA on regression results
-anova(model, test="Chisq")
+# using aggregate to check the various groupings and summary stats for each predictor
+aggregate(cdx_cog2 ~ LM1_AB_sscore,data=train,summary)
+aggregate(cdx_cog2 ~ Age,data=train,summary)
+aggregate(cdx_cog2 ~ TrailsA_sscore,data=train,summary)
+aggregate(cdx_cog2 ~ mmse_t_w,data=train,summary)
+aggregate(cdx_cog2 ~ ID_Gender,data=train,summary)
 
-# LDA
-mylda <- lda(cdx_cog2 ~., data = train)
-mylda <- lda(cdx_cog2 ~ cdx_depression + LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender, data = train)
+# proportion tables
+prop.table.LM1 <- prop.table(table(train$cdx_cog2, train$LM1_AB_sscore),2)
+prop.table.Age <-prop.table(table(train$cdx_cog2, train$Age),2)
+prop.table.TrailsA <-prop.table(table(train$cdx_cog2, train$TrailsA_sscore),2)
+prop.table.Gender <-prop.table(table(train$cdx_cog2, train$ID_Gender),2)
+prop.table.MMSE <-prop.table(table(train$cdx_cog2, train$mmse_t_w),2)
 
-np <- 1
-nd.x <- seq(from = min(full$X1), to = max(full$X1), length.out = np)
-nd.y <- seq(from = min(full$X2), to = max(full$X2), length.out = np)
-nd <- expand.grid(X1 = nd.x, X2 = nd.y)
+# Visualize proportion tables
+plot(train$cdx_cog2~train$LM1_AB_sscore,col=c("red","blue"))
+plot(train$cdx_cog2~train$Age,col=c("red","blue"))
+plot(train$cdx_cog2~train$TrailsA_sscore,col=c("red","blue"))
+plot(train$cdx_cog2~train$ID_Gender,col=c("red","blue"))
+plot(train$cdx_cog2~train$mmse_t_w,col=c("red","blue"))
 
-prd <- as.numeric(predict(mylda, newdata = test)$class)
+# Correlation plots for continuous predictors (not including gender)
+pairs(train[,c("LM1_AB_sscore","Age","TrailsA_sscore","mmse_t_w")])
+my.cor<-cor(train[,c("LM1_AB_sscore","Age","TrailsA_sscore","mmse_t_w")])
+my.cor
+pairs(train[,c("LM1_AB_sscore","Age","TrailsA_sscore","mmse_t_w")],col=train$cdx_cog2)
 
-plot(full[, 1:2], col = full$Response, main="Shift in X2")
-points(mylda$means, pch = "+", cex = 2, col = c("black", "red"))
-contour(x = nd.x, y = nd.y, z = matrix(prd, nrow = np, ncol = np), 
-        levels = c(1, 2), add = TRUE, drawlabels = FALSE)
+# heatmap for correlation plot
+heatmap.2(my.cor,col=redgreen(75), 
+          density.info="none", trace="none", dendrogram=c("row"), 
+          symm=F,symkey=T,symbreaks=T, scale="none")
+
+# Using the summary coefficients we can generate CI for each one in the table and get odds ratios
+exp(cbind("Odds ratio" = coef(model), confint.default(model, level = 0.95))) 
+
+# create null model and build it up
+model.null<-glm(cdx_cog2 ~ 1, data=train,family = binomial(link="logit"))
+
+#This starts with a null model and then builds up using forward selection up to all the predictors that were specified in my
+#main model previously.
+step(model.null,
+     scope = list(upper=model),
+     direction="forward",
+     test="Chisq",
+     data=train)
+
+
+
+
 
