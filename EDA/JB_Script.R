@@ -1,55 +1,5 @@
 
-# diabetes MLR exploration
-
-library(MASS)
-
-# Load data
-setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/Data")
-medData <- read.csv(file="DJ_Project2_Data.csv", header=TRUE)
-
-medData
-
-# -17, -143  IMH_Diabetes  IMH_OtherMentalHealthSpec
-reduced<-medData[,-c(17,143)]
-reduced<-medData[,c(143)]
-reduced
-
-reduced2<-medData[,c(2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18,19,20,21,22,23,24,25,26,27,28
-                     ,29,30,31,32,33,34,35,36,37,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60
-                     ,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90
-                     ,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115
-                     ,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138
-                     ,139,140,141,142,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160)]
-testDatalm <- lm(IMH_Diabetes~., data = reduced2)
-summary(testDatalm)
-
-
-reduced3 <- reduced2[,c("IMH_Diabetes","ID_Education","OM_BP2_DIA","OM_AbCircumference","IMH_HighBP","IMH_Alzheimers","IMH_UTI","bw_eGFRAA","bw_eGFRnonAA","bw_glucose","bw_ALT")]
-
-testDatalm <- lm(IMH_Diabetes~ID_Education + OM_BP2_DIA + OM_AbCircumference + IMH_HighBP 
-                 + IMH_Alzheimers + IMH_UTI + bw_eGFRAA + bw_eGFRnonAA + bw_glucose + bw_ALT, data = reduced3)
-summary(testDatalm)
-
-
-# scatterplot matrix
-pairs(reduced3)
-
-# cdx_cog | cdx_mci (mild cognitive impairment) - APOE_1 - 4 are genetic marker for cognition
-# normal vs. demented  |  normal vs. MCI
-# control for sex, age, race
-
-
-
-reduced4 <- reduced2[,c("cdx_cog")]
-
-summary(reduced4)
-
-reduced5 <- ifelse(medData)
-
-
-
-# cognitive data exploration
-
+# loadings
 library(dplyr)
 library(RColorBrewer)
 library(glmnet)
@@ -58,13 +8,15 @@ library(ggplot2)
 library(leaps)
 library(MASS)
 
-
 # Load data
 setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/EDA")
-
 medData2 <- read.csv(file="data_cut.csv", header=TRUE)
 
-reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec, cdx_mcid, Med_ID))
+# remove factor columns that are practically not useful or Null
+reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec, cdx_mcid, Med_ID
+                               , bw_GLOB, bw_nonhdl, IMH_Parkinsons, ID_Race_OtherPacific, ID_Race_Samoan
+                               , ID_Race_GuamChamorro, ID_Race_NativeHawaiian, ID_Race_Vietnamese, ID_Race_Korean
+                               , ID_Race_Japanese))
 
 
 # recode cognitive variable
@@ -88,7 +40,7 @@ reduced3 <- reduced %>% mutate(cdx_cog2=recode(cdx_cog,
                          `4`=1,
                          `5`=0))
 
-
+# recode hispanic variable
 reduced3a <- reduced3 %>% mutate(ID_Hispanic2=recode(ID_Hispanic, 
                                                `1`=0,
                                                `2`=1,
@@ -98,7 +50,6 @@ reduced3a <- reduced3 %>% mutate(ID_Hispanic2=recode(ID_Hispanic,
 
 
 # Set NAs to 0
-
 reduced4 <- reduced3a %>%
   mutate(cdx_cog2 = if_else(is.na(cdx_cog2), 0, cdx_cog2))
 
@@ -112,15 +63,15 @@ sapply(reduced4, class)
 # replace all NA values with 0
 reduced4a[is.na(reduced4a)] = 0
 
-# MLR to identify significant variables
-testDatalm <- lm(cdx_cog2~., data = reduced4)
-summary(testDatalm)
-
-testDatalm2 <- lm(cdx_cog2~cdx_depression + LM2_AB_sscore + Age, data = reduced4)
-summary(testDatalm2)
-
 # removing these two columns because they are very highly correlated with the predictor
 reduced4a <- select (reduced4a,-c(cdx_mci, cdx_cog))
+
+# Another removal step to remove 'Age' columns
+reduced4a <- select (reduced4a,-c(IMH_HighBPAge, IMH_HeartDiseaseAge, IMH_StrokeAge, IMH_AnxietyAge, IMH_OsteoporosisAge
+                                , IMH_ArthritisAge, IMH_SeizuresDisorderAge, IMH_ParkinsonAge, IMH_UTIAge, IMH_DepressionAge
+                                , IMH_DementiaAge, IMH_CancerAge, IMH_DiabetesAge, IMH_HighCholesterolAge, IMH_AlzheimersAge
+                                , IMH_ThyroidDiseaseAge, IMH_KidneyDiseaseAge, IMH_OtherMentalHealthAge
+                                , IMH_RhuematoidArthritisAge, IMH_TBIAge))
 
 # test / train data set split
 train <- reduced4a[1:350,]
@@ -134,15 +85,16 @@ summary(full.model)
 # stepwise selection
 step(lm(cdx_cog2 ~., data = train),direction="both")
 
-# stepwise recommended model - AIC: -825.72 Adj. R2 = 0.5785
-model.stepwise <- lm(formula = cdx_cog2 ~ OM_Pulse2 + OM_BP2_SYS + OM_BMI + IMH_HighBPAge + 
-                       IMH_Dementia + IMH_HeartDisease + IMH_HeartDiseaseAge + IMH_StrokeAge + 
-                       IMH_AnxietyAge + IMH_OsteoporosisAge + IMH_Arthritis + IMH_ArthritisAge + 
-                       IMH_SeizuresDisorderAge + IMH_TBI + TrailsAtime + TrailsAerrors + 
-                       TrailsBtime + LM2_Atotal + LM2_Btotal + LM2_AB_total + LM2_AB_sscore + 
-                       mmse_t_w + bw_eGFRnonAA + bw_eGFRAA + bw_Bilirubin + bw_hematocrit + 
-                       bw_platelet + cdx_hypothyroid + cdx_anemia + APOE_4 + ID_Hispanic2 + 
-                       bw_calcium + Age + ID_Education + ID_Race_White, data = train)
+# stepwise recommended model - AIC: -816.47 Adj. R2 = 0.565
+model.stepwise <- lm(formula = cdx_cog2 ~ ID_Race_IndianAlaska + ID_Education_Degree + 
+                       OM_AbCircumference + OM_Height + OM_Weight + IMH_Anxiety + 
+                       IMH_Osteoporosis + IMH_SeizureDisorder + TrailsAtime + TrailsAerrors + 
+                       TrailsBtime + LM1_AB_total + LM1_AB_sscore + LM2_Atotal + 
+                       LM2_Btotal + LM2_AB_total + mmse_t_w + bw_choltotal + bw_UAbun + 
+                       bw_eGFRnonAA + bw_eGFRAA + bw_calcium + bw_Bilirubin + bw_hematocrit + 
+                       bw_platelet + cdx_hypertension + cdx_hypothyroid + cdx_anemia + 
+                       APOE_4 + ID_Hispanic2 + ID_Race_White + bw_ALB_GLOB + TrailsA_sscore, 
+                     data = train)
 summary(model.stepwise)
 
 # convert dependent variable to factor
@@ -150,18 +102,17 @@ train[, 'cdx_cog2'] <- as.factor(train[, 'cdx_cog2'])
 test[, 'cdx_cog2'] <- as.factor(test[, 'cdx_cog2'])
 
 # LM2_AB_sscore | LM1_AB_sscore and TrailsA_sscore | TrailsB_sscore  - trails (higher the score the worse)are cognitive test scores
-# Partial fit using stepwise recommendations - AIC 193.88
-model.partial <- glm(cdx_cog2 ~ OM_Pulse2 + OM_BP2_SYS + OM_BMI + IMH_HighBPAge + 
-  IMH_Dementia + IMH_HeartDisease + IMH_HeartDiseaseAge + IMH_StrokeAge + 
-  IMH_AnxietyAge + IMH_OsteoporosisAge + IMH_Arthritis + IMH_ArthritisAge + 
-  IMH_SeizuresDisorderAge + IMH_TBI + TrailsAtime + TrailsAerrors + 
-  TrailsBtime + LM2_Atotal + LM2_Btotal + LM2_AB_total + LM2_AB_sscore + 
-  mmse_t_w + bw_eGFRnonAA + bw_eGFRAA + bw_Bilirubin + bw_hematocrit + 
-  bw_platelet + cdx_hypothyroid + cdx_anemia + APOE_4 + ID_Hispanic2 + 
-  bw_calcium + Age + ID_Education + ID_Race_White
+# Partial fit using stepwise recommendations in logistic regression model - AIC 194.95
+model.partial <- glm(cdx_cog2 ~ ID_Race_IndianAlaska + ID_Education_Degree + 
+                       OM_AbCircumference + OM_Height + OM_Weight + IMH_Anxiety + 
+                       IMH_Osteoporosis + IMH_SeizureDisorder + TrailsAtime + TrailsAerrors + 
+                       TrailsBtime + LM1_AB_total + LM1_AB_sscore + LM2_Atotal + 
+                       LM2_Btotal + LM2_AB_total + mmse_t_w + bw_choltotal + bw_UAbun + 
+                       bw_eGFRnonAA + bw_eGFRAA + bw_calcium + bw_Bilirubin + bw_hematocrit + 
+                       bw_platelet + cdx_hypertension + cdx_hypothyroid + cdx_anemia + 
+                       APOE_4 + ID_Hispanic2 + ID_Race_White + bw_ALB_GLOB + TrailsA_sscore
   ,family=binomial(link='logit'),data=train)
 summary(model.partial)
-
 
 # manually built model using practical knowledge - AIC 255.93
 # should we run LASSO against it as well?
@@ -170,51 +121,163 @@ model.manual  <- glm(cdx_cog2 ~ LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w 
 summary(model.manual)
 
 # using aggregate to check the various groupings and summary stats for each predictor
+aggregate(cdx_cog2 ~ ID_Race_IndianAlaska,data=train,summary)
+aggregate(cdx_cog2 ~ ID_Education_Degree,data=train,summary)
+aggregate(cdx_cog2 ~ OM_AbCircumference,data=train,summary)
+aggregate(cdx_cog2 ~ OM_Height,data=train,summary)
+aggregate(cdx_cog2 ~ OM_Weight,data=train,summary)
+aggregate(cdx_cog2 ~ IMH_Anxiety,data=train,summary)
+aggregate(cdx_cog2 ~ IMH_Osteoporosis,data=train,summary)
+aggregate(cdx_cog2 ~ IMH_SeizureDisorder,data=train,summary)
+aggregate(cdx_cog2 ~ TrailsAtime,data=train,summary)
+aggregate(cdx_cog2 ~ TrailsAerrors,data=train,summary)
+aggregate(cdx_cog2 ~ TrailsBtime,data=train,summary)
+aggregate(cdx_cog2 ~ LM1_AB_total,data=train,summary)
 aggregate(cdx_cog2 ~ LM1_AB_sscore,data=train,summary)
-aggregate(cdx_cog2 ~ Age,data=train,summary)
-aggregate(cdx_cog2 ~ TrailsA_sscore,data=train,summary)
+aggregate(cdx_cog2 ~ LM2_Atotal,data=train,summary)
+aggregate(cdx_cog2 ~ LM2_Btotal,data=train,summary)
+aggregate(cdx_cog2 ~ LM2_AB_total,data=train,summary)
 aggregate(cdx_cog2 ~ mmse_t_w,data=train,summary)
-aggregate(cdx_cog2 ~ ID_Gender,data=train,summary)
+aggregate(cdx_cog2 ~ bw_choltotal,data=train,summary)
+aggregate(cdx_cog2 ~ bw_UAbun,data=train,summary)
+aggregate(cdx_cog2 ~ bw_eGFRnonAA,data=train,summary)
+aggregate(cdx_cog2 ~ bw_eGFRAA,data=train,summary)
+aggregate(cdx_cog2 ~ bw_calcium,data=train,summary)
+aggregate(cdx_cog2 ~ bw_Bilirubin,data=train,summary)
+aggregate(cdx_cog2 ~ bw_hematocrit,data=train,summary)
+aggregate(cdx_cog2 ~ bw_platelet,data=train,summary)
+aggregate(cdx_cog2 ~ cdx_hypertension,data=train,summary)
+aggregate(cdx_cog2 ~ cdx_anemia,data=train,summary)
+aggregate(cdx_cog2 ~ cdx_hypothyroid,data=train,summary)
+aggregate(cdx_cog2 ~ APOE_4,data=train,summary)
+aggregate(cdx_cog2 ~ ID_Hispanic2,data=train,summary)
+aggregate(cdx_cog2 ~ ID_Race_White,data=train,summary)
+aggregate(cdx_cog2 ~ bw_ALB_GLOB,data=train,summary)
+aggregate(cdx_cog2 ~ TrailsA_sscore,data=train,summary)
 
 # proportion tables
-prop.table.LM1 <- prop.table(table(train$cdx_cog2, train$LM1_AB_sscore),2)
-prop.table.Age <-prop.table(table(train$cdx_cog2, train$Age),2)
-prop.table.TrailsA <-prop.table(table(train$cdx_cog2, train$TrailsA_sscore),2)
-prop.table.Gender <-prop.table(table(train$cdx_cog2, train$ID_Gender),2)
-prop.table.MMSE <-prop.table(table(train$cdx_cog2, train$mmse_t_w),2)
+prop.ID_Race_IndianAlaska <- prop.table(table(train$cdx_cog2, train$ID_Race_IndianAlaska),2)
+prop.ID_Education_Degree <- prop.table(table(train$cdx_cog2, train$ID_Education_Degree),2)
+prop.OM_AbCircumference <- prop.table(table(train$cdx_cog2, train$OM_AbCircumference),2)
+prop.OM_Height <- prop.table(table(train$cdx_cog2, train$OM_Height),2)
+prop.OM_Weight <- prop.table(table(train$cdx_cog2, train$OM_Weight),2)
+prop.IMH_Anxiety <- prop.table(table(train$cdx_cog2, train$IMH_Anxiety),2)
+prop.IMH_Osteoporosis <- prop.table(table(train$cdx_cog2, train$IMH_Osteoporosis),2)
+prop.IMH_SeizureDisorder <- prop.table(table(train$cdx_cog2, train$IMH_SeizureDisorder),2)
+prop.TrailsAtime <- prop.table(table(train$cdx_cog2, train$TrailsAtime),2)
+prop.TrailsAerrors <- prop.table(table(train$cdx_cog2, train$TrailsAerrors),2)
+prop.TrailsBtime <- prop.table(table(train$cdx_cog2, train$TrailsBtime),2)
+prop.LM1_AB_total <- prop.table(table(train$cdx_cog2, train$LM1_AB_total),2)
+prop.LM1_AB_sscore <- prop.table(table(train$cdx_cog2, train$LM1_AB_sscore),2)
+prop.LM2_Atotal <- prop.table(table(train$cdx_cog2, train$LM2_Atotal),2)
+prop.LM2_Btotal <- prop.table(table(train$cdx_cog2, train$LM2_Btotal),2)
+prop.LM2_AB_total <- prop.table(table(train$cdx_cog2, train$LM2_AB_total),2)
+prop.mmse_t_w <- prop.table(table(train$cdx_cog2, train$mmse_t_w),2)
+prop.bw_choltotal <- prop.table(table(train$cdx_cog2, train$bw_choltotal),2)
+prop.bw_UAbun <- prop.table(table(train$cdx_cog2, train$bw_UAbun),2)
+prop.bw_eGFRnonAA <- prop.table(table(train$cdx_cog2, train$bw_eGFRnonAA),2)
+prop.bw_eGFRAA <- prop.table(table(train$cdx_cog2, train$bw_eGFRAA),2)
+prop.bw_calcium <- prop.table(table(train$cdx_cog2, train$bw_calcium),2)
+prop.bw_Bilirubin <- prop.table(table(train$cdx_cog2, train$bw_Bilirubin),2)
+prop.bw_hematocrit <- prop.table(table(train$cdx_cog2, train$bw_hematocrit),2)
+prop.bw_platelet <- prop.table(table(train$cdx_cog2, train$bw_platelet),2)
+prop.cdx_hypertension <- prop.table(table(train$cdx_cog2, train$cdx_hypertension),2)
+prop.cdx_hypothyroid <- prop.table(table(train$cdx_cog2, train$cdx_hypothyroid),2)
+prop.cdx_anemia <- prop.table(table(train$cdx_cog2, train$cdx_anemia),2)
+prop.APOE_4 <- prop.table(table(train$cdx_cog2, train$APOE_4),2)
+prop.ID_Hispanic2 <- prop.table(table(train$cdx_cog2, train$ID_Hispanic2),2)
+prop.ID_Race_White <- prop.table(table(train$cdx_cog2, train$ID_Race_White),2)
+prop.bw_ALB_GLOB <- prop.table(table(train$cdx_cog2, train$bw_ALB_GLOB),2)
+prop.TrailsA_sscore <- prop.table(table(train$cdx_cog2, train$TrailsA_sscore),2)
 
 # Visualize proportion tables
-plot(train$cdx_cog2~train$LM1_AB_sscore,col=c("red","blue"))
 plot(train$cdx_cog2~train$Age,col=c("red","blue"))
-plot(train$cdx_cog2~train$TrailsA_sscore,col=c("red","blue"))
 plot(train$cdx_cog2~train$ID_Gender,col=c("red","blue"))
 plot(train$cdx_cog2~train$mmse_t_w,col=c("red","blue"))
+plot(train$cdx_cog2~train$ID_Race_IndianAlaska,col=c("red","blue"))
+plot(train$cdx_cog2~train$ID_Education_Degree,col=c("red","blue"))
+plot(train$cdx_cog2~train$OM_AbCircumference,col=c("red","blue"))
+plot(train$cdx_cog2~train$OM_Height,col=c("red","blue"))
+plot(train$cdx_cog2~train$OM_Weight,col=c("red","blue"))
+plot(train$cdx_cog2~train$IMH_Anxiety,col=c("red","blue"))
+plot(train$cdx_cog2~train$IMH_Osteoporosis,col=c("red","blue"))
+plot(train$cdx_cog2~train$IMH_SeizureDisorder,col=c("red","blue"))
+plot(train$cdx_cog2~train$TrailsAtime,col=c("red","blue"))
+plot(train$cdx_cog2~train$TrailsA_sscore,col=c("red","blue"))
+plot(train$cdx_cog2~train$TrailsAerrors,col=c("red","blue"))
+plot(train$cdx_cog2~train$TrailsBtime,col=c("red","blue"))
+plot(train$cdx_cog2~train$LM1_AB_total,col=c("red","blue"))
+plot(train$cdx_cog2~train$LM1_AB_sscore,col=c("red","blue"))
+plot(train$cdx_cog2~train$LM2_Atotal,col=c("red","blue"))
+plot(train$cdx_cog2~train$LM2_Btotal,col=c("red","blue"))
+plot(train$cdx_cog2~train$LM2_AB_total,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_choltotal,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_UAbun,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_eGFRnonAA,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_eGFRAA,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_calcium,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_Bilirubin,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_hematocrit,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_platelet,col=c("red","blue"))
+plot(train$cdx_cog2~train$cdx_hypertension,col=c("red","blue"))
+plot(train$cdx_cog2~train$cdx_hypothyroid,col=c("red","blue"))
+plot(train$cdx_cog2~train$cdx_anemia,col=c("red","blue"))
+plot(train$cdx_cog2~train$APOE_4,col=c("red","blue"))
+plot(train$cdx_cog2~train$ID_Hispanic2,col=c("red","blue"))
+plot(train$cdx_cog2~train$ID_Race_White,col=c("red","blue"))
+plot(train$cdx_cog2~train$bw_ALB_GLOB,col=c("red","blue"))
 
-# Correlation plots for continuous predictors (not including gender)
-pairs(train[,c("LM1_AB_sscore","Age","TrailsA_sscore","mmse_t_w")])
-my.cor<-cor(train[,c("LM1_AB_sscore","Age","TrailsA_sscore","mmse_t_w")])
-my.cor
-pairs(train[,c("LM1_AB_sscore","Age","TrailsA_sscore","mmse_t_w")],col=train$cdx_cog2)
+# Correlation plots for continuous predictors (not including gender since it's categorical)
+pairs(train[,c("LM1_AB_sscore","Age","mmse_t_w", "ID_Race_IndianAlaska", "ID_Education_Degree"
+               ,"OM_AbCircumference","OM_Height","OM_Weight","IMH_Anxiety","IMH_Osteoporosis","IMH_SeizureDisorder"
+               ,"TrailsAtime","TrailsA_sscore","TrailsAerrors","TrailsBtime","LM1_AB_total", "LM1_AB_sscore"
+               ,"LM2_Atotal", "LM2_Btotal","LM2_AB_total","bw_choltotal","bw_UAbun","bw_eGFRnonAA","bw_eGFRAA"
+               ,"bw_calcium","bw_Bilirubin","bw_hematocrit","bw_platelet","cdx_hypertension","cdx_hypothyroid"
+               ,"cdx_anemia","APOE_4","ID_Hispanic2","ID_Race_White","bw_ALB_GLOB")])
+
+my.cor<-cor(train[,c("LM1_AB_sscore","Age","mmse_t_w", "ID_Race_IndianAlaska", "ID_Education_Degree"
+                     ,"OM_AbCircumference","OM_Height","OM_Weight","IMH_Anxiety","IMH_Osteoporosis","IMH_SeizureDisorder"
+                     ,"TrailsAtime","TrailsA_sscore","TrailsAerrors","TrailsBtime","LM1_AB_total", "LM1_AB_sscore"
+                     ,"LM2_Atotal", "LM2_Btotal","LM2_AB_total","bw_choltotal","bw_UAbun","bw_eGFRnonAA","bw_eGFRAA"
+                     ,"bw_calcium","bw_Bilirubin","bw_hematocrit","bw_platelet","cdx_hypertension","cdx_hypothyroid"
+                     ,"cdx_anemia","APOE_4","ID_Hispanic2","ID_Race_White","bw_ALB_GLOB")])
+
+pairs(train[,c("LM1_AB_sscore","Age","mmse_t_w", "ID_Race_IndianAlaska", "ID_Education_Degree"
+               ,"OM_AbCircumference","OM_Height","OM_Weight","IMH_Anxiety","IMH_Osteoporosis","IMH_SeizureDisorder"
+               ,"TrailsAtime","TrailsA_sscore","TrailsAerrors","TrailsBtime","LM1_AB_total", "LM1_AB_sscore"
+               ,"LM2_Atotal", "LM2_Btotal","LM2_AB_total","bw_choltotal","bw_UAbun","bw_eGFRnonAA","bw_eGFRAA"
+               ,"bw_calcium","bw_Bilirubin","bw_hematocrit","bw_platelet","cdx_hypertension","cdx_hypothyroid"
+               ,"cdx_anemia","APOE_4","ID_Hispanic2","ID_Race_White","bw_ALB_GLOB")],col=train$cdx_cog2)
 
 # heatmap for correlation plot
 heatmap.2(my.cor,col=redgreen(75), 
           density.info="none", trace="none", dendrogram=c("row"), 
           symm=F,symkey=T,symbreaks=T, scale="none")
 
-# Using the summary coefficients we can generate CI for each one in the table and get odds ratios
-exp(cbind("Odds ratio" = coef(model), confint.default(model, level = 0.95))) 
+# Using the summary coefficients we can generate CI for each one in the table and get odds ratios - stepwise recommendations
+exp(cbind("Odds ratio" = coef(model.partial), confint.default(model.partial, level = 0.95))) 
+
+# Using the summary coefficients we can generate CI for each one in the table and get odds ratios - manual model
+exp(cbind("Odds ratio" = coef(model.manual), confint.default(model.manual, level = 0.95))) 
 
 # create null model and build it up
 model.null<-glm(cdx_cog2 ~ 1, data=train,family = binomial(link="logit"))
 
-#This starts with a null model and then builds up using forward selection up to all the predictors that were specified in my
-#main model previously.
+# This starts with a null model and then builds up using forward selection up to all the predictors that were specified - stepwise
+# AIC 197.9
 step(model.null,
-     scope = list(upper=model),
+     scope = list(upper=model.partial),
      direction="forward",
      test="Chisq",
      data=train)
 
+# This starts with a null model and then builds up using forward selection up to all the predictors that were specified - manual
+# AIC 255.9
+step(model.null,
+     scope = list(upper=model.manual),
+     direction="forward",
+     test="Chisq",
+     data=train)
 
 
 
