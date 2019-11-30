@@ -1,5 +1,9 @@
 
 # loadings
+
+install.packages("skimr")
+install.packages("dplyr")
+library(skimr)
 library(dplyr)
 library(RColorBrewer)
 library(glmnet)
@@ -10,13 +14,17 @@ library(MASS)
 
 # Load data
 setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/EDA")
-medData2 <- read.csv(file="data_cut.csv", header=TRUE)
+medData <- read.csv(file="data_cut.csv", header=TRUE, sep=',', na.strings=c("", "NA"))
+
+minus_cols <- c(1,7:15,17,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,65,66,68,70,72,74,76,78,80,104,105,143,157:161)
+medData[,-minus_cols]->medData
+
+# replace all NA values with 0; should we get rid of NAs instead?
+medData <- na.omit(medData)
 
 # remove factor columns that are practically not useful or Null
-reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMentalHealthSpec, cdx_mcid, Med_ID
-                               , bw_GLOB, bw_nonhdl, IMH_Parkinsons, ID_Race_OtherPacific, ID_Race_Samoan
-                               , ID_Race_GuamChamorro, ID_Race_NativeHawaiian, ID_Race_Vietnamese, ID_Race_Korean
-                               , ID_Race_Japanese))
+reduced <- select (medData2,-c(TrailsBtime, TrailsBerrors, LM1_B2_total, TrailsAerrors, TrailsAtime
+                               , LM1_AB_total, LM2_Btotal, LM2_AB_total, LM2_Atotal))
 
 
 # recode cognitive variable
@@ -32,7 +40,7 @@ reduced <- select (medData2,-c(OM_Notes, ID_Race_Specify, cdx_dt, IMH_OtherMenta
 #7=Dont Know
 #8=Refuse to answer
 #9=Not Appicable
-reduced3 <- reduced %>% mutate(cdx_cog2=recode(cdx_cog, 
+reduced <- reduced %>% mutate(cdx_cog=recode(cdx_cog, 
                          `0`=0,
                          `1`=1,
                          `2`=1,
@@ -41,84 +49,84 @@ reduced3 <- reduced %>% mutate(cdx_cog2=recode(cdx_cog,
                          `5`=0))
 
 # recode hispanic variable
-reduced3a <- reduced3 %>% mutate(ID_Hispanic2=recode(ID_Hispanic, 
+reduced <- reduced %>% mutate(ID_Hispanic=recode(ID_Hispanic, 
                                                `1`=0,
                                                `2`=1,
                                                `3`=1,
                                                `4`=1,
                                                `5`=1))
 
-
-# Set NAs to 0
-reduced4 <- reduced3a %>%
-  mutate(cdx_cog2 = if_else(is.na(cdx_cog2), 0, cdx_cog2))
-
-reduced4a <- reduced4 %>%
-  mutate(ID_Hispanic2 = if_else(is.na(ID_Hispanic2), 0, ID_Hispanic2))
-
-
 # see all the column types
-sapply(reduced4, class)
-
-# replace all NA values with 0
-reduced4a[is.na(reduced4a)] = 0
+#sapply(reduced4, class)
 
 # removing these two columns because they are very highly correlated with the predictor
-reduced4a <- select (reduced4a,-c(cdx_mci, cdx_cog))
+# reduced3a <- select (reduced3a,-c(cdx_cog))
 
 # Another removal step to remove 'Age' columns
-reduced4a <- select (reduced4a,-c(IMH_HighBPAge, IMH_HeartDiseaseAge, IMH_StrokeAge, IMH_AnxietyAge, IMH_OsteoporosisAge
-                                , IMH_ArthritisAge, IMH_SeizuresDisorderAge, IMH_ParkinsonAge, IMH_UTIAge, IMH_DepressionAge
-                                , IMH_DementiaAge, IMH_CancerAge, IMH_DiabetesAge, IMH_HighCholesterolAge, IMH_AlzheimersAge
-                                , IMH_ThyroidDiseaseAge, IMH_KidneyDiseaseAge, IMH_OtherMentalHealthAge
-                                , IMH_RhuematoidArthritisAge, IMH_TBIAge))
+# reduced4a <- select (reduced3a,-c(IMH_HighBPAge, IMH_HeartDiseaseAge, IMH_StrokeAge, IMH_AnxietyAge, IMH_OsteoporosisAge
+                                #, IMH_ArthritisAge, IMH_SeizuresDisorderAge, IMH_ParkinsonAge, IMH_UTIAge, IMH_DepressionAge
+                                #, IMH_DementiaAge, IMH_CancerAge, IMH_DiabetesAge, IMH_HighCholesterolAge, IMH_AlzheimersAge
+                                #, IMH_ThyroidDiseaseAge, IMH_KidneyDiseaseAge, IMH_OtherMentalHealthAge
+                                #, IMH_RhuematoidArthritisAge, IMH_TBIAge))
+
 
 # test / train data set split
-train <- reduced4a[1:350,]
-test <- reduced4a[351:741,]
+train <- reduced[1:200,]
+test <- reduced[201:401,]
 
-# full fit (MLR) before converting response to factor
-train$cdx_cog2<-as.numeric(train$cdx_cog2) 
-full.model <- lm(cdx_cog2 ~., data = train)
+
+# full fit (MLR) before converting response to factor - R2 0.3932
+train$cdx_cog<-as.numeric(train$cdx_cog) 
+full.model <- lm(cdx_cog ~., data = train)
 summary(full.model)
 
-# stepwise selection
-step(lm(cdx_cog2 ~., data = train),direction="both")
+# stepwise selection - LM
+step(lm(cdx_cog ~., data = train),direction="both")
 
-# stepwise recommended model - AIC: -816.47 Adj. R2 = 0.565
-model.stepwise <- lm(formula = cdx_cog2 ~ ID_Race_IndianAlaska + ID_Education_Degree + 
-                       OM_AbCircumference + OM_Height + OM_Weight + IMH_Anxiety + 
-                       IMH_Osteoporosis + IMH_SeizureDisorder + TrailsAtime + TrailsAerrors + 
-                       TrailsBtime + LM1_AB_total + LM1_AB_sscore + LM2_Atotal + 
-                       LM2_Btotal + LM2_AB_total + mmse_t_w + bw_choltotal + bw_UAbun + 
-                       bw_eGFRnonAA + bw_eGFRAA + bw_calcium + bw_Bilirubin + bw_hematocrit + 
-                       bw_platelet + cdx_hypertension + cdx_hypothyroid + cdx_anemia + 
-                       APOE_4 + ID_Hispanic2 + ID_Race_White + bw_ALB_GLOB + TrailsA_sscore, 
+# stepwise recommended model - R2 = 0.5666
+model.stepwise <- lm(formula = cdx_cog ~ ID_Race_Black + ID_Residence + ID_USlive + 
+                       ID_Income + ID_Retire + OM_Pulse1 + OM_Pulse2 + OM_Height + 
+                       OM_Weight + OM_BMI + IMH_Alzheimers + IMH_Dementia + IMH_HeartDisease + 
+                       IMH_Stroke + IMH_OtherMentalHealth + TrailsA_sscore + TrailsB_sscore + 
+                       LM1_AB_sscore + LM2_AB_sscore + mmse_t_w + bw_choltotal + 
+                       bw_HDLchol + bw_triglycerides + bw_LDLchol + bw_glucose + 
+                       bw_chloride + bw_calcium + bw_protein + bw_Bilirubin + bw_ALKA + 
+                       bw_WBC + bw_RBC + bw_hematocrit + bw_MCV + bw_RDW + bw_platelet + 
+                       bw_ABneutro + bw_ABlymph + bw_lymphocytes + cdx_hypertension + 
+                       cdx_hypothyroid + bw_MCH, 
                      data = train)
 summary(model.stepwise)
 
-# convert dependent variable to factor
-train[, 'cdx_cog2'] <- as.factor(train[, 'cdx_cog2'])
-test[, 'cdx_cog2'] <- as.factor(test[, 'cdx_cog2'])
+# LASSO call
+x=model.matrix(cdx_cog~.,train)[,-1]
+y=(train$cdx_cog)
+xtest<-model.matrix(cdx_cog~.,test)[,-1]
+ytest<-test$cdx_cog
 
-# LM2_AB_sscore | LM1_AB_sscore and TrailsA_sscore | TrailsB_sscore  - trails (higher the score the worse)are cognitive test scores
-# Partial fit using stepwise recommendations in logistic regression model - AIC 194.95
-model.partial <- glm(cdx_cog2 ~ ID_Race_IndianAlaska + ID_Education_Degree + 
-                       OM_AbCircumference + OM_Height + OM_Weight + IMH_Anxiety + 
-                       IMH_Osteoporosis + IMH_SeizureDisorder + TrailsAtime + TrailsAerrors + 
-                       TrailsBtime + LM1_AB_total + LM1_AB_sscore + LM2_Atotal + 
-                       LM2_Btotal + LM2_AB_total + mmse_t_w + bw_choltotal + bw_UAbun + 
-                       bw_eGFRnonAA + bw_eGFRAA + bw_calcium + bw_Bilirubin + bw_hematocrit + 
-                       bw_platelet + cdx_hypertension + cdx_hypothyroid + cdx_anemia + 
-                       APOE_4 + ID_Hispanic2 + ID_Race_White + bw_ALB_GLOB + TrailsA_sscore
-  ,family=binomial(link='logit'),data=train)
-summary(model.partial)
+# Plot LASSO model
+grid=10^seq(10,-2, length =608)
+lasso.mod=glmnet(x,y,alpha=1, lambda =grid)
+par(mfrow=c(1,1))
+cv.out=cv.glmnet(x,y,alpha=1) #alpha=1 performs LASSO
+plot(cv.out)
+bestlambda<-cv.out$lambda.min  #Optimal penalty parameter.  You can make this call visually.
+lasso.pred=predict (lasso.mod ,s=bestlambda ,newx=xtest)
+
+# identify they variables selected by LASSO
+coef(lasso.mod,s=bestlambda)
+
+# convert dependent variable to factor
+train[, 'cdx_cog'] <- as.factor(train[, 'cdx_cog'])
+test[, 'cdx_cog'] <- as.factor(test[, 'cdx_cog'])
 
 # manually built model using practical knowledge - AIC 255.93
-# should we run LASSO against it as well?
-model.manual  <- glm(cdx_cog2 ~ LM1_AB_sscore + Age + TrailsA_sscore + mmse_t_w + ID_Gender
-              ,family=binomial(link='logit'),data=train)
-summary(model.manual)
+model.manual <- glm(cdx_cog ~ Age + ID_Gender + ID_USlive + OM_BMI + IMH_Alzheimers + IMH_Stroke + TrailsA_sscore + LM1_AB_sscore + LM2_AB_sscore 
+                + mmse_t_w + bw_hemoglobin + bw_ABneutro + bw_ABmono + bw_lymphocytes + cdx_hypertension
+               ,family=binomial(link='logit'),data=train)
+
+# Using the summary coefficients we can generate CI for each one in the table and get odds ratios - manual model
+exp(cbind("Odds ratio" = coef(model.manual), confint.default(model.manual, level = 0.95))) 
+
 
 # using aggregate to check the various groupings and summary stats for each predictor
 aggregate(cdx_cog2 ~ ID_Race_IndianAlaska,data=train,summary)
@@ -253,32 +261,3 @@ pairs(train[,c("LM1_AB_sscore","Age","mmse_t_w", "ID_Race_IndianAlaska", "ID_Edu
 heatmap.2(my.cor,col=redgreen(75), 
           density.info="none", trace="none", dendrogram=c("row"), 
           symm=F,symkey=T,symbreaks=T, scale="none")
-
-# Using the summary coefficients we can generate CI for each one in the table and get odds ratios - stepwise recommendations
-exp(cbind("Odds ratio" = coef(model.partial), confint.default(model.partial, level = 0.95))) 
-
-# Using the summary coefficients we can generate CI for each one in the table and get odds ratios - manual model
-exp(cbind("Odds ratio" = coef(model.manual), confint.default(model.manual, level = 0.95))) 
-
-# create null model and build it up
-model.null<-glm(cdx_cog2 ~ 1, data=train,family = binomial(link="logit"))
-
-# This starts with a null model and then builds up using forward selection up to all the predictors that were specified - stepwise
-# AIC 197.9
-step(model.null,
-     scope = list(upper=model.partial),
-     direction="forward",
-     test="Chisq",
-     data=train)
-
-# This starts with a null model and then builds up using forward selection up to all the predictors that were specified - manual
-# AIC 255.9
-step(model.null,
-     scope = list(upper=model.manual),
-     direction="forward",
-     test="Chisq",
-     data=train)
-
-
-
-
