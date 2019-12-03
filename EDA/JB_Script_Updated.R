@@ -13,16 +13,11 @@ library(MASS)
 setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/EDA")
 medData <- read.csv(file="data_cut.csv", header=TRUE, sep=',', na.strings=c("", "NA"))
 
-minus_cols <- c(1,7:15,17,32:34,38,41,43,45,47,49,51,53,55,57,59,61,63,65,66,68,70,72,74,76,78,80,104,105,143,157:161)
+minus_cols<-c(1,7:17,22:24,29:34,36:38,41,43,45,47,48,49,51,53,55,57,59,61,63,64,65,66,68,70,72,74,76,78,80:82,84,85,87,88,90:92,95,99,100,104,105,114,122,123,125,126,136:140,143:151,157:161)
 medData[,-minus_cols]->medData
 
 # replace all NA values with 0; should we get rid of NAs instead?
 medData <- na.omit(medData)
-
-# remove factor columns that are practically not useful or Null
-reduced <- select (medData2,-c(TrailsBtime, TrailsBerrors, LM1_B2_total, TrailsAerrors, TrailsAtime
-                               , LM1_AB_total, LM2_Btotal, LM2_AB_total, LM2_Atotal, cdx_hypertension))
-
 
 # recode cognitive variable
 ######
@@ -37,7 +32,7 @@ reduced <- select (medData2,-c(TrailsBtime, TrailsBerrors, LM1_B2_total, TrailsA
 #7=Dont Know
 #8=Refuse to answer
 #9=Not Appicable
-reduced <- reduced %>% mutate(cdx_cog=recode(cdx_cog, 
+reduced <- medData %>% mutate(cdx_cog=recode(cdx_cog, 
                          `0`=0,
                          `1`=1,
                          `2`=1,
@@ -53,10 +48,9 @@ reduced <- reduced %>% mutate(ID_Hispanic=recode(ID_Hispanic,
                                                `4`=1,
                                                `5`=1))
 
-# test / train data set split
+# test / train data set split 50/50
 train <- reduced[1:200,]
-test <- reduced[201:401,]
-
+test <- reduced[201:452,]
 
 # full fit (MLR) before converting response to factor - R2 0.3932
 train$cdx_cog<-as.numeric(train$cdx_cog) 
@@ -67,17 +61,10 @@ summary(full.model)
 step(lm(cdx_cog ~., data = train),direction="both")
 
 # stepwise recommended model - R2 = 0.5666
-model.stepwise <- lm(formula = cdx_cog ~ ID_Race_Black + ID_Residence + ID_USlive + 
-                       ID_Income + ID_Retire + OM_Pulse1 + OM_Pulse2 + OM_Height + 
-                       OM_Weight + OM_BMI + IMH_Alzheimers + IMH_Dementia + IMH_HeartDisease + 
-                       IMH_Stroke + IMH_OtherMentalHealth + TrailsA_sscore + TrailsB_sscore + 
-                       LM1_AB_sscore + LM2_AB_sscore + mmse_t_w + bw_choltotal + 
-                       bw_HDLchol + bw_triglycerides + bw_LDLchol + bw_glucose + 
-                       bw_chloride + bw_calcium + bw_protein + bw_Bilirubin + bw_ALKA + 
-                       bw_WBC + bw_RBC + bw_hematocrit + bw_MCV + bw_RDW + bw_platelet + 
-                       bw_ABneutro + bw_ABlymph + bw_lymphocytes + cdx_hypertension + 
-                       cdx_hypothyroid + bw_MCH, 
-                     data = train)
+model.stepwise <- lm(formula = cdx_cog ~ Age + ID_Race_White + ID_Residence + ID_Education + 
+                       ID_Retire + OM_BMI + IMH_HighBP + IMH_HeartDisease + IMH_ThyroidDisease + 
+                       TrailsA_sscore + LM2_AB_sscore + mmse_t_w + bw_hemoglobin + 
+                       bw_ABlymph + bw_ABmono, data = train)
 summary(model.stepwise)
 
 # LASSO call
@@ -102,9 +89,10 @@ coef(lasso.mod,s=bestlambda)
 train[, 'cdx_cog'] <- as.factor(train[, 'cdx_cog'])
 test[, 'cdx_cog'] <- as.factor(test[, 'cdx_cog'])
 
-# manually built model using practical knowledge and LASSO and Stepwise - AIC 97.75
+# manually built model using practical knowledge and LASSO and Stepwise - AIC 101.39
 model.manual <- glm(cdx_cog ~ Age + ID_Gender + ID_USlive + OM_BMI + IMH_Stroke + TrailsA_sscore + LM1_AB_sscore + LM2_AB_sscore 
-                + mmse_t_w + bw_hemoglobin + bw_ABneutro + bw_ABmono + bw_lymphocytes
+                + mmse_t_w + bw_hemoglobin + + IMH_ThyroidDisease + bw_ABneutro + bw_ABmono + bw_ABlymph + IMH_HighBP + ID_Education 
+                + ID_Race_White 
                ,family=binomial(link='logit'),data=train)
 summary(model.manual)
 
