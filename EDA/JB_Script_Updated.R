@@ -56,20 +56,6 @@ reduced <- reduced %>% mutate(ID_Hispanic=recode(ID_Hispanic,
                                                `4`=1,
                                                `5`=1))
 
-# see all the column types
-#sapply(reduced4, class)
-
-# removing these two columns because they are very highly correlated with the predictor
-# reduced3a <- select (reduced3a,-c(cdx_cog))
-
-# Another removal step to remove 'Age' columns
-# reduced4a <- select (reduced3a,-c(IMH_HighBPAge, IMH_HeartDiseaseAge, IMH_StrokeAge, IMH_AnxietyAge, IMH_OsteoporosisAge
-                                #, IMH_ArthritisAge, IMH_SeizuresDisorderAge, IMH_ParkinsonAge, IMH_UTIAge, IMH_DepressionAge
-                                #, IMH_DementiaAge, IMH_CancerAge, IMH_DiabetesAge, IMH_HighCholesterolAge, IMH_AlzheimersAge
-                                #, IMH_ThyroidDiseaseAge, IMH_KidneyDiseaseAge, IMH_OtherMentalHealthAge
-                                #, IMH_RhuematoidArthritisAge, IMH_TBIAge))
-
-
 # test / train data set split
 train <- reduced[1:200,]
 test <- reduced[201:401,]
