@@ -24,7 +24,7 @@ medData <- na.omit(medData)
 
 # remove factor columns that are practically not useful or Null
 reduced <- select (medData2,-c(TrailsBtime, TrailsBerrors, LM1_B2_total, TrailsAerrors, TrailsAtime
-                               , LM1_AB_total, LM2_Btotal, LM2_AB_total, LM2_Atotal))
+                               , LM1_AB_total, LM2_Btotal, LM2_AB_total, LM2_Atotal, cdx_hypertension))
 
 
 # recode cognitive variable
@@ -119,14 +119,11 @@ coef(lasso.mod,s=bestlambda)
 train[, 'cdx_cog'] <- as.factor(train[, 'cdx_cog'])
 test[, 'cdx_cog'] <- as.factor(test[, 'cdx_cog'])
 
-# manually built model using practical knowledge - AIC 255.93 - removed Alzheimers because practically it follows that folks with this disease
-# will have cognitive impairment
+# manually built model using practical knowledge and LASSO and Stepwise - AIC 97.75
 model.manual <- glm(cdx_cog ~ Age + ID_Gender + ID_USlive + OM_BMI + IMH_Stroke + TrailsA_sscore + LM1_AB_sscore + LM2_AB_sscore 
-                + mmse_t_w + bw_hemoglobin + bw_ABneutro + bw_ABmono + bw_lymphocytes + cdx_hypertension
+                + mmse_t_w + bw_hemoglobin + bw_ABneutro + bw_ABmono + bw_lymphocytes
                ,family=binomial(link='logit'),data=train)
 summary(model.manual)
-
-sapply(train, class)
 
 # Using the summary coefficients we can generate CI for each one in the table and get odds ratios - manual model
 exp(cbind("Odds ratio" = coef(model.manual), confint.default(model.manual, level = 0.95)))
