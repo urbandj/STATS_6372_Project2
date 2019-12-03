@@ -1,8 +1,5 @@
 
 # loadings
-
-install.packages("skimr")
-install.packages("dplyr")
 library(skimr)
 library(dplyr)
 library(RColorBrewer)
