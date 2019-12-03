@@ -119,14 +119,17 @@ coef(lasso.mod,s=bestlambda)
 train[, 'cdx_cog'] <- as.factor(train[, 'cdx_cog'])
 test[, 'cdx_cog'] <- as.factor(test[, 'cdx_cog'])
 
-# manually built model using practical knowledge - AIC 255.93
-model.manual <- glm(cdx_cog ~ Age + ID_Gender + ID_USlive + OM_BMI + IMH_Alzheimers + IMH_Stroke + TrailsA_sscore + LM1_AB_sscore + LM2_AB_sscore 
+# manually built model using practical knowledge - AIC 255.93 - removed Alzheimers because practically it follows that folks with this disease
+# will have cognitive impairment
+model.manual <- glm(cdx_cog ~ Age + ID_Gender + ID_USlive + OM_BMI + IMH_Stroke + TrailsA_sscore + LM1_AB_sscore + LM2_AB_sscore 
                 + mmse_t_w + bw_hemoglobin + bw_ABneutro + bw_ABmono + bw_lymphocytes + cdx_hypertension
                ,family=binomial(link='logit'),data=train)
+summary(model.manual)
+
+sapply(train, class)
 
 # Using the summary coefficients we can generate CI for each one in the table and get odds ratios - manual model
 exp(cbind("Odds ratio" = coef(model.manual), confint.default(model.manual, level = 0.95))) 
-
 
 # using aggregate to check the various groupings and summary stats for each predictor
 aggregate(cdx_cog2 ~ ID_Race_IndianAlaska,data=train,summary)
