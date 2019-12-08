@@ -13,6 +13,11 @@ library(gridExtra)
 library(tidyverse)  # data manipulation
 library(cluster)    # clustering algorithms
 library(factoextra) # clustering algorithms & visualization
+library(rgl) ##For mac users you may need to download Xquartz before the 3d plots will run.
+library(tree)
+library(ISLR)
+library(randomForest)
+
 
 # Load data
 setwd("F:/SMU/DS6372/Project 2/STATS_6372_Project2/EDA")
@@ -189,13 +194,19 @@ data_under_sam <- ovun.sample(cdx_cog_bucket ~., data = medData, method = "under
 data_both_sam <- ovun.sample(cdx_cog_bucket ~., data = medData, method = "both",N =500)$data
 
 ### simple tables that returns count and prop of cdx_cog and cdx_cog_bucket to keep in mind during anaylsis
-cog_table<-table( medData$cdx_cog_bucket,medData$cdx_cog)
+cog_table<-table( medData$cdx_cog,medData$cdx_cog)
 cog_table
 prop.table(cog_table) # row percentages
+
 
 bucket_table<-table( medData$cdx_cog_bucket, medData$cdx_cog_bucket)
 bucket_table
 prop.table(bucket_table) # row percentage
+
+reduced_table<--table( reduced$cdx_cog_bucket, reduced$cdx_cog_bucket)
+bucket_table
+prop.table(bucket_table) # row percentage
+
 
 table(data_over_sam$cdx_cog_bucket)
 table(data_under_sam$cdx_cog_bucket)
@@ -387,17 +398,23 @@ plot(cv.medical)
 prune.medical=prune.misclass(tree.medical,best=9)
 plot(prune.medical)
 text(prune.medical,pretty=0)
+title("Tree Prediction on 50/50 Train/Test")
+
 
 tree.pred=predict(prune.medical,test,type="class")
 table(tree.pred,test$cdx_cog_bucket)
+confusionMatrix(tree.pred,test$cdx_cog_bucket, dnn = c("Prediction", "Cognition"),  mode = "sens_spec")
+
 
 #We can verify the overfitting idea by saying to split the tree
 #very deep
-prune.medical=prune.misclass(tree.medical,best=9)
-plot(prune.medical)
-text(prune.medical,pretty=0)
-tree.pred=predict(prune.medical,test,type="class")
+prune.medical2=prune.misclass(tree.medical,best=7)
+plot(prune.medical2)
+text(prune.medical2,pretty=0)
+tree.pred=predict(prune.medical2,test,type="class")
 table(tree.pred,test$cdx_cog_bucket)
+confusionMatrix(tree.pred,test$cdx_cog_bucket, dnn = c("Prediction", "Cognition"),  mode = "sens_spec")
+
 
 
 #For ROC curves on a single decision tree you need predicted probabilities to
@@ -421,6 +438,8 @@ rf.model = randomForest(cdx_cog_bucket~.,train,subsets=train,importance=T,ntree=
 fit.pred<-predict(rf.model,newdata=test,type="response")
 table(fit.pred,test$cdx_cog_bucket)
 
+confusionMatrix(fit.pred,test$cdx_cog_bucket, dnn = c("Prediction", "Cognition"),  mode = "sens_spec")
+
 #Run ROC curves for RandomForest Model
 rf.pred<-predict(rf.model,newdata=test,type="prob")
 pred <- prediction(rf.pred[,2], test$cdx_cog_bucket)
@@ -429,9 +448,9 @@ roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
 #I'm just rinsing and repeating code the produces the curve.
 auc.train <- performance(pred, measure = "auc")
 auc.train <- auc.train@y.values
-plot(roc.perf,main="AUC of Test set RF")
+plot(roc.perf,main="AUC of 50/50 Set RF",colorize=TRUE)
 abline(a=0, b= 1)
-text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""),col="blue")
 
 #Variable Importance Plots
 varImpPlot (rf.model,type=1,main="Variable Importance")
@@ -442,21 +461,21 @@ varImpPlot (rf.model,type=2,main="Variable Importance")
 
 set.seed(1234)
 trainobs=sample(seq(1,dim(reduced)[1]),round(.75*dim(reduced)[1]),replace=FALSE)
-train=reduced[trainobs,]
-test=reduced[-trainobs,]
+train_r=reduced[trainobs,]
+test_r=reduced[-trainobs,]
 
-summary(train$cdx_cog_bucket)
+summary(train_r$cdx_cog_bucket)
 #Need to convert to factor for trees to work correctly
-train$cdx_cog_bucket = factor(train$cdx_cog_bucket)
-test$cdx_cog_bucket = factor(test$cdx_cog_bucket)
-summary(train$cdx_cog_bucket)
+train_r$cdx_cog_bucket = factor(train_r$cdx_cog_bucket)
+test_r$cdx_cog_bucket = factor(test_r$cdx_cog_bucket)
+summary(train_r$cdx_cog_bucket)
 
 #Run regular trees
-tree.medical=tree(cdx_cog_bucket~.,train)
+tree.medical=tree(cdx_cog_bucket~.,train_r)
 plot(tree.medical)
 text(tree.medical, pretty = 0)
-tree.pred=predict(tree.medical,test,type="class")
-table(tree.pred,test$cdx_cog_bucket)
+tree.pred=predict(tree.medical,test_r,type="class")
+table(tree.pred,test_r$cdx_cog_bucket)
 
 #Prune the trees 
 set.seed(3)
@@ -469,24 +488,25 @@ prune.medical=prune.misclass(tree.medical,best=9)
 plot(prune.medical)
 text(prune.medical,pretty=0)
 
-tree.pred=predict(prune.medical,test,type="class")
-table(tree.pred,test$cdx_cog_bucket)
+tree.pred=predict(prune.medical,test_r,type="class")
+table(tree.pred,test_r$cdx_cog_bucket)
 
 #We can verify the overfitting idea by saying to split the tree
 #very deep
-prune.medical=prune.misclass(tree.medical,best=9)
-plot(prune.medical)
-text(prune.medical,pretty=0)
-tree.pred=predict(prune.medical,test,type="class")
-table(tree.pred,test$cdx_cog_bucket)
+prune.medical2=prune.misclass(tree.medical,best=7)
+plot(prune.medical2)
+text(prune.medical2,pretty=0)
+tree.pred=predict(prune.medical2,test_r,type="class")
+table(tree.pred,test_r$cdx_cog_bucket)
 
+confusionMatrix(tree.pred,test_r$cdx_cog_bucket, dnn = c("Prediction", "Cognition"),  mode = "sens_spec")
 
 #For ROC curves on a single decision tree you need predicted probabilities to
 #use the previous R scripts.  Lets just use the example here with the last run.
-tree.pred=predict(prune.medical,test,type="vector")
+tree.pred=predict(prune.medical,test_r,type="vector")
 head(tree.pred)
 
-pred <- prediction(tree.pred[,2], test$cdx_cog_bucket)
+pred <- prediction(tree.pred[,2], test_r$cdx_cog_bucket)
 roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
 #Note in the following code the term "train" means nothing here. 
 #I'm just rinsing and repeating code the produces the curve.
@@ -498,13 +518,13 @@ text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 
 #Execute the random forest
-rf.model = randomForest(cdx_cog_bucket~.,train,subsets=train,importance=T,ntree=100)
-fit.pred<-predict(rf.model,newdata=test,type="response")
-table(fit.pred,test$cdx_cog_bucket)
+rf.model = randomForest(cdx_cog_bucket~.,train_r,subsets=train,importance=T,ntree=100)
+fit.pred<-predict(rf.model,newdata=test_r,type="response")
+table(fit.pred,test_t$cdx_cog_bucket)
 
 #Run ROC curves for RandomForest Model
-rf.pred<-predict(rf.model,newdata=test,type="prob")
-pred <- prediction(rf.pred[,2], test$cdx_cog_bucket)
+rf.pred<-predict(rf.model,newdata=test_r,type="prob")
+pred <- prediction(rf.pred[,2], test_r$cdx_cog_bucket)
 roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
 #Note in the following code the term "train" means nothing here. 
 #I'm just rinsing and repeating code the produces the curve.
@@ -515,8 +535,103 @@ abline(a=0, b= 1)
 text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
 
 #Variable Importance Plots
-varImpPlot (rf.model,type=1,main="Variable Importance")
-varImpPlot (rf.model,type=2,main="Variable Importance")
+varImpPlot (rf.model,type=1,main="Variable Importance, Type 1")
+varImpPlot (rf.model,type=2,main="Variable Importance Type 2")
+
+
+####################################################
+#Tress on  both way sampled data with 75/25 split
+tree_split<-c(76)
+data_both_sam[,-tree_split]->data_both_sam
+
+
+set.seed(1234)
+trainobs=sample(seq(1,dim(data_both_sam)[1]),round(.75*dim(data_both_sam)[1]),replace=FALSE)
+Both_train=data_both_sam[trainobs,]
+Both_test=data_both_sam[-trainobs,]
+
+#Need to convert to factor for trees to work correctly
+Both_train$cdx_cog_bucket = factor(Both_train$cdx_cog_bucket)
+Both_test$cdx_cog_bucket = factor(Both_test$cdx_cog_bucket)
+summary(Both_train$cdx_cog_bucket)
+
+#Run regular trees
+tree.medical=tree(cdx_cog_bucket~.,Both_train)
+plot(tree.medical)
+text(tree.medical, pretty = 0)
+tree.pred<-predict(tree.medical,Both_test,type="class")
+table(tree.pred,Both_test$cdx_cog_bucket)
+
+#Prune the trees 
+set.seed(3)
+par(mfrow=c(1,1))
+cv.medical=cv.tree(tree.medical,FUN=prune.misclass)
+names(cv.medical)
+plot(cv.medical)
+#Fit the pruned tree and visualize
+
+prune.medical=prune.misclass(tree.medical,best=9)
+plot(prune.medical)
+text(prune.medical,pretty=0)
+title("Tree Prediction on 75/25 Train/Test on Sampled Data")
+
+
+tree.pred=predict(prune.medical,Both_test,type="class")
+table(tree.pred,Both_test$cdx_cog_bucket)
+confusionMatrix(tree.pred,Both_test$cdx_cog_bucket, dnn = c("Prediction", "Cognition"),  mode = "sens_spec")
+
+
+#We can verify the overfitting idea by saying to split the tree
+#very deep
+prune.medical2=prune.misclass(tree.medical,best=7)
+plot(prune.medical2)
+text(prune.medical2,pretty=0)
+tree.pred=predict(prune.medical2,Both_test,type="class")
+table(tree.pred,Both_test$cdx_cog_bucket)
+confusionMatrix(tree.pred,Both_test$cdx_cog_bucket, dnn = c("Prediction", "Cognition"),  mode = "sens_spec")
+
+
+
+#For ROC curves on a single decision tree you need predicted probabilities to
+#use the previous R scripts.  Lets just use the example here with the last run.
+tree.pred=predict(prune.medical,Both_test,type="vector")
+head(tree.pred)
+
+pred <- prediction(tree.pred[,2], Both_test$cdx_cog_bucket)
+roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+#Note in the following code the term "train" means nothing here. 
+#I'm just rinsing and repeating code the produces the curve.
+auc.train <- performance(pred, measure = "auc")
+auc.train <- auc.train@y.values
+plot(roc.perf,main="AUC of Sampled Test set of a Single Tree")
+abline(a=0, b= 1)
+text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+
+#Execute the random forest
+srf.model = randomForest(cdx_cog_bucket~.,Both_train,subsets=Both_train,importance=T,ntree=100)
+sfit.pred<-predict(srf.model,newdata=Both_test,type="response")
+table(sfit.pred,Both_test$cdx_cog_bucket)
+
+#Run ROC curves for RandomForest Model
+srf.pred<-predict(srf.model,newdata=Both_test,type="prob")
+spred <- prediction(srf.pred[,2], Both_test$cdx_cog_bucket)
+roc.perf = performance(spred, measure = "tpr", x.measure = "fpr")
+#Note in the following code the term "train" means nothing here. 
+#I'm just rinsing and repeating code the produces the curve.
+auc.train <- performance(spred, measure = "auc")
+auc.train <- auc.train@y.values
+plot(roc.perf,main="AUC of Sampled Test set RF", colorize=TRUE)
+abline(a=0, b= 1)
+text(x = .40, y = .6,paste("AUC = ", round(auc.train[[1]],3), sep = ""))
+
+#Variable Importance Plots
+varImpPlot (srf.model,type=1,main="Variable Importance, Type 1")
+varImpPlot (srf.model,type=2,main="Variable Importance Type 2")
+
+
+
+
 
 ###############################################
 ##K means clustering
@@ -528,23 +643,24 @@ medData[,-k_cols]->km_set
 #Normalized the scale for kmeans anaylsis
 km<-scale(km_set)
 
+#distance plot of scale df 
 distance <- get_dist(km)
 dev.off()
 fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+#Kmeans model choose centers and nstart
 k2 <- kmeans(km, centers =2, nstart =25)
+
+#plot kmeans model
 fviz_cluster(k2, data = km)
 
 k2
-km %>%
-  as_tibble() %>%
-  mutate(cluster = k2$cluster,
-         cogstate= row.names(cdx_cog_bucket)) %>%
-  ggplot(aes(cdx_cog_bucket, Murder, color = factor(cluster), label = state)) +
-  geom_text()
 
+#indentify the optimal # of cluster
 set.seed(123)
 fviz_nbclust(km, kmeans, method = "wss")
 
+#tuned kmeans model
 set.seed(123)
 final <- kmeans(km, 2, nstart = 50)
 print(final)
